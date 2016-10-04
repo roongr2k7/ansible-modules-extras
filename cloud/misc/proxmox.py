@@ -61,6 +61,12 @@ options:
       - required only for C(state=present)
     default: null
     required: false
+  ssh_public_keys:
+    description:
+      - authorized_keys for root
+    default: null
+    required: false
+    version_added: "2.3"
   hostname:
     description:
       - the instance hostname
@@ -304,6 +310,7 @@ def main():
       validate_certs = dict(type='bool', default='no'),
       node = dict(),
       password = dict(no_log=True),
+      ssh_public_keys = dict(),
       hostname = dict(),
       ostemplate = dict(),
       disk = dict(type='str', default='3'),
@@ -370,18 +377,22 @@ def main():
         module.fail_json(msg="ostemplate '%s' not exists on node %s and storage %s"
                          % (module.params['ostemplate'], node, template_store))
 
-      create_instance(module, proxmox, vmid, node, disk, storage, cpus, memory, swap, timeout,
-                      password = module.params['password'],
-                      hostname = module.params['hostname'],
-                      ostemplate = module.params['ostemplate'],
-                      netif = module.params['netif'],
-                      mounts = module.params['mounts'],
-                      ip_address = module.params['ip_address'],
-                      onboot = int(module.params['onboot']),
-                      cpuunits = module.params['cpuunits'],
-                      nameserver = module.params['nameserver'],
-                      searchdomain = module.params['searchdomain'],
-                      force = int(module.params['force']))
+      instance_params = {
+          "password": module.params['password'],
+          "ssh-public-keys": module.params['ssh_public_keys'],
+          "hostname": module.params['hostname'],
+          "ostemplate": module.params['ostemplate'],
+          "netif": module.params['netif'],
+          "mounts": module.params['mounts'],
+          "ip_address": module.params['ip_address'],
+          "onboot": int(module.params['onboot']),
+          "cpuunits": module.params['cpuunits'],
+          "nameserver": module.params['nameserver'],
+          "searchdomain": module.params['searchdomain'],
+          "force": int(module.params['force'])
+      }
+
+      create_instance(module, proxmox, vmid, node, disk, storage, cpus, memory, swap, timeout, **instance_params)
 
       module.exit_json(changed=True, msg="deployed VM %s from template %s"  % (vmid, module.params['ostemplate']))
     except Exception, e:
